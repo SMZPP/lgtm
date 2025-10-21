@@ -1,10 +1,10 @@
-name: Auto PR main to dev
+name: Auto PR main to dev (on merge only)
 
 on:
-  # mainブランチへのpush（マージを含む）をトリガーにする
-  push:
+  pull_request:
     branches:
       - main
+    types: [closed]
 
 permissions:
   contents: write
@@ -12,47 +12,20 @@ permissions:
 
 jobs:
   create_pr:
-    # ワークフローをGitHub Actionsのデフォルトの仮想環境で実行
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
       - name: 🔎 Checkout Repository
         uses: actions/checkout@v4
-        with:
-          # ghコマンドでPRを作成するためには、履歴の取得は不要なので浅いクローンでOK
-          fetch-depth: 0
-
-      - name: ⚙️ Setup GitHub CLI
-        run: echo "GitHub CLI is already available on this runner."
-        # GitHub CLIはほとんどのランナーにプリインストールされていますが、明示的に設定するステップは不要です。
-        # ここでは、ghコマンドが利用可能であることを確認するステップと見なしてください。
 
       - name: 🤖 Create Pull Request from main to dev
-        env:
-          # GitHub CLIの認証トークンを設定
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # **重要**：直前のコミットがマージコミットであることを確認するロジック
-          # これにより、開発者がmainに直接コミットした場合のPR作成を防ぎます。
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          if [[ $COMMIT_MESSAGE != Merge* ]]; then
-            echo "Skipping: Last commit was not a merge commit."
-            exit 0
-          fi
-          
-          echo "Creating PR from main to dev..."
-          
-          # gh pr createコマンドでPRを作成
-          # -B: ベースブランチ (マージ先: dev)
-          # -H: ヘッドブランチ (マージ元: main)
-          # -t: PRのタイトル
-          # -b: PRの本文
-          # --assignee: PRの担当者としてワークフローの実行者を自動設定
-          gh pr create \
-            --base dev \
-            --head main \
-            --title "✨ [Automated] Merge main into dev after feature deployment" \
-            --body "他のブランチからの変更が main にマージされました。確認後、devブランチへマージしてください。" \
-            --assignee "${{ github.actor }}"
-          
-          echo "Pull Request successfully created."
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: "main"
+          destination_branch: "dev"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: "✨ [Auto] Merge main into dev"
+          pr_body: |
+            このPRは main ブランチへの **マージ完了** により自動生成されました。
+            main の変更を dev に同期します。
