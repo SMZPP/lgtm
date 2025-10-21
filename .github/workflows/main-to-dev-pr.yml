@@ -19,6 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: ⚙️ Setup GitHub CLI
+        run: echo "GitHub CLI is already available on this runner."
         # GitHub CLIはほとんどのランナーにプリインストールされていますが、明示的に設定するステップは不要です。
         # ここでは、ghコマンドが利用可能であることを確認するステップと見なしてください。
 
